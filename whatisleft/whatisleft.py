@@ -1,37 +1,37 @@
-import pytest
 import glob
+import logging
+import shutil
+import subprocess
 from pathlib import Path
-from distutils.dir_util import copy_tree
-from multiprocessing import Process
+
 from codefile import CodeFile
 
-def copy_repo():
-    dest = Path('testdir') 
-    dest.mkdir()
-    copy_tree('.', dest)
+logger = logging.Logger(name='whatisleft')
 
-    return dest
-    
+
+def copy_repo(destdir: str):
+    shutil.copytree('.', destdir, symlinks=True)
 
 def main():
-    dest = copy_repo()
-    files = glob.glob(dest / '*.py')
+    destdir = '/tmp/testdir'
+    if Path(destdir).exists:
+        shutil.rmtree(destdir)
+    copy_repo(destdir)
+    files = glob.glob(f'{destdir}/whatisleft/*.py')
 
     for file in files:
-        with open(file, 'r') as code_file:
-            code = CodeFile(code_file.read())
-
+        code = CodeFile(file)
 
         while(True):
             try:
                 code.remove_line()
-                # print("\n".join(code.content))
-                run_tests = Process(target=pytest.main)
-                run_tests.start()
-                run_tests.join()
-                # ret = pytest.main(['-qq', '--no-header', '--no-summary'])
-                # if ret != 0:
-                    # code.revert_remove()
+                code.write()
+                complete = subprocess.run(['pytest', '-qq', '--no-header', '--no-summary', destdir])
+                print(complete.returncode)
+                if complete.returncode != 0:
+                    logger.debug("Reverting line.")
+                    code.revert_remove()
+                    code.write()
             except Exception as e:
                 print(e)
                 break
