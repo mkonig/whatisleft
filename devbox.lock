@@ -49,51 +49,67 @@
         }
       }
     },
-    "cz-cli@latest": {
-      "last_modified": "2024-07-07T07:43:47Z",
-      "resolved": "github:NixOS/nixpkgs/b60793b86201040d9dee019a05089a9150d08b5b#cz-cli",
+    "commitizen@latest": {
+      "last_modified": "2024-07-26T05:01:57Z",
+      "resolved": "github:NixOS/nixpkgs/733453ac54a40997a6a690b60f3942d79560247c#commitizen",
       "source": "devbox-search",
-      "version": "4.3.0",
+      "version": "3.28.0",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/lmqwn2psvk68d9kka97ax56689pm5bl1-cz-cli-4.3.0",
+              "path": "/nix/store/3d9kc6hby78l9qbib5l1hsm9xh6yxlp2-commitizen-3.28.0",
               "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/6jj7cm4nxvillz6yjz5bdwdwv078ybch-commitizen-3.28.0-dist"
             }
           ],
-          "store_path": "/nix/store/lmqwn2psvk68d9kka97ax56689pm5bl1-cz-cli-4.3.0"
+          "store_path": "/nix/store/3d9kc6hby78l9qbib5l1hsm9xh6yxlp2-commitizen-3.28.0"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/2cqvi3flxg94yz3ljhsc5pwwn0q20qj4-cz-cli-4.3.0",
+              "path": "/nix/store/zswlv96142pqlif5pwq4bgqz9ms2am6w-commitizen-3.28.0",
               "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/1z2z3902rycrxg7j8ym9n6bzvlnsvrwi-commitizen-3.28.0-dist"
             }
           ],
-          "store_path": "/nix/store/2cqvi3flxg94yz3ljhsc5pwwn0q20qj4-cz-cli-4.3.0"
+          "store_path": "/nix/store/zswlv96142pqlif5pwq4bgqz9ms2am6w-commitizen-3.28.0"
         },
         "x86_64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/nzlzm5640q9mlqkq04acircw0cifkphr-cz-cli-4.3.0",
+              "path": "/nix/store/8kdd56n82kbxvy5g6qi800xc0cw5673y-commitizen-3.28.0",
               "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/lhif7g03pq7kxw7h0sb5d38x5qg3m862-commitizen-3.28.0-dist"
             }
           ],
-          "store_path": "/nix/store/nzlzm5640q9mlqkq04acircw0cifkphr-cz-cli-4.3.0"
+          "store_path": "/nix/store/8kdd56n82kbxvy5g6qi800xc0cw5673y-commitizen-3.28.0"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/jcvqc85i4h9n0bz5pp9siafcnlcmdwbc-cz-cli-4.3.0",
+              "path": "/nix/store/42h8phsz1243xjg1bvc5j1xspkyxbz1k-commitizen-3.28.0",
               "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/wzycf0msn1d3bh68mm3fszkimhkxwgl7-commitizen-3.28.0-dist"
             }
           ],
-          "store_path": "/nix/store/jcvqc85i4h9n0bz5pp9siafcnlcmdwbc-cz-cli-4.3.0"
+          "store_path": "/nix/store/42h8phsz1243xjg1bvc5j1xspkyxbz1k-commitizen-3.28.0"
         }
       }
     },
