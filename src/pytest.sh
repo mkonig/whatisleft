@@ -3,10 +3,10 @@
 testfolder=$1
 if [ -z "$testfolder" ]; then
     echo "No test folder defined."
-    exit 1
+    exit 2
 elif ! [ -d "$testfolder" ]; then
     echo "Test folder does not exist."
-    exit 1
+    exit 2
 fi
 
 pytest $testfolder
