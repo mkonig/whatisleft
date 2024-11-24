@@ -9,16 +9,24 @@ setup() {
 
 # bats file_tags=remove_line
 
-@test "Remove should return the removed line" {
+@test "Remove returns the removed line" {
     tmp_file=$(mktemp)
     run remove_line.sh 1 test/assets/testfile.py "$tmp_file"
     assert_output "# python comment"
 }
 
-@test "Remove should return the removed line with leading spaces" {
+@test "Remove returns the removed line with leading spaces" {
     tmp_file=$(mktemp)
     run remove_line.sh 6 test/assets/testfile.py "$tmp_file"
     assert_output "    print(\"hi\")"
+}
+
+@test "Output file same as input file" {
+    tmp_file=$(mktemp)
+    cp test/assets/testfile.py "$tmp_file"
+    run remove_line.sh 1 "$tmp_file" "$tmp_file"
+    delta --paging never -s "$tmp_file" test/assets/remove_first_line_output.py
+    assert_output "# python comment"
 }
 
 @test "Remove first line of file" {

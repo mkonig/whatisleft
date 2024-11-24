@@ -17,6 +17,8 @@ elif [[ $line_number -lt 0 ]]; then
 fi
 
 removed_line=$(sed -n "${line_number}p" "$input_file")
-sed "${line_number}d" "$input_file" > "$output_file"
+tmp_file=$(mktemp)
+sed "${line_number}d" "$input_file" > "$tmp_file"
+cp "$tmp_file" "$output_file"
 
 echo "$removed_line"

@@ -12,6 +12,8 @@ removed_line=""
 project_files=()
 project_output_folder=""
 current_file_index=0
+state=""
+framework_runner=""
 
 validate_test_framework() {
     framework=$1
@@ -71,17 +73,19 @@ state_finished="state_finished"
 next_state() {
     local last_state="$1"
     if [[ "$last_state" == "$state_remove_line_success" ]]; then
-        echo "$state_run_runner"
+        state="$state_run_runner"
     elif [[ "$last_state" == "$state_remove_line_failed" ]]; then
-        echo "$state_finished"
+        state="$state_finished"
     elif [[ "$last_state" == "$state_run_runner_failed" ]]; then
-        echo "$state_revert_remove"
+        state="$state_revert_remove"
     elif [[ "$last_state" == "$state_run_runner_success" ]]; then
-        echo "$state_remove_line"
+        state="$state_remove_line"
     elif [[ "$last_state" == "$state_finished" ]]; then
-        echo "$state_finished"
+        state="$state_finished"
+    elif [[ "$last_state" == "$state_remove_line" ]]; then
+        state="$state_remove_line"
     else
-        echo "$state_unknown"
+        state="$state_unknown"
     fi
 }
 
@@ -98,7 +102,8 @@ get_next_file() {
 
 remove_line() {
     log_debug "Removing line: $current_line_number, $current_file"
-    removed_line=$(remove_line.sh "$current_line_number" "$project_output_folder/$current_file" "$project_output_folder/$current_file")
+    log_debug "$(cat $project_output_folder/$current_file)"
+    removed_line=$(remove_line.sh "$current_line_number" "${project_output_folder}/${current_file}" "${project_output_folder}/${current_file}")
     remove_status=$?
     log_info "Removed from $current_file: $removed_line"
 
@@ -127,6 +132,7 @@ remove_line() {
 }
 
 run_runner() {
+    log_debug "Framework: $framework_runner"
     eval "$framework_runner $project_output_folder" > /dev/null 2>&1
     runner_state=$?
     if [[ "$runner_state" -ge 1 ]]; then
@@ -140,20 +146,21 @@ run_runner() {
 
 revert_remove() {
     log_debug "revert: $current_line_number ,removed line: $removed_line ,current file: $current_file"
-    insert_line.sh $current_line_number "$removed_line" "$current_file" "$current_file" > /dev/null 2>&1
+    insert_line.sh $current_line_number "$removed_line" "${project_output_folder}/${current_file}" "${project_output_folder}/${current_file}" > /dev/null 2>&1
     local revert_state=$?
     log_debug "revert state: $revert_state"
+    log_debug "$(cat "${project_output_folder}/${current_file}")"
     if (( revert_state >= 1 )); then
         state="$state_finished"
         return 1
     else
+        current_line_number=$((current_line_number+1))
         state="$state_remove_line"
         return 0
     fi
 }
 
 run_state() {
-    local state="$1"
     if [[ "$state" == "$state_remove_line" ]]; then
         remove_line
     elif [[ "$state" == "$state_run_runner" ]]; then
@@ -167,6 +174,7 @@ run_state() {
 run_main() {
     log_debug "Starting"
     check_parameters
+    framework_runner=$(get_test_framework_runner "$test_framework")
 
     local project_files_file="${output_folder}/project.files"
     project_output_folder="${output_folder}/project"
@@ -177,16 +185,13 @@ run_main() {
     current_file=${project_files[0]}
     log_debug "current_file: $current_file"
 
-    local framework_runner
-    framework_runner=$(get_test_framework_runner "$framework")
-
-    local state="$state_remove_line"
+    state="$state_remove_line"
     log_debug "start state: $state"
     while [ "$state" != "$state_finished" ] ; do
         log_debug "state: $state"
-        state=$(run_state "$state")
+        run_state "$state"
         log_debug "state after run: $state"
-        state=$(next_state "$state")
+        next_state "$state"
         log_debug "next state: $state"
     done
     echo "done"

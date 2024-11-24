@@ -76,12 +76,15 @@ setup() {
     done
 }
 
-# bats test_tags=whatisleft
+# bats test_tags=whatisleft,bats:focus
 @test "whatisleft copies folder, run pytest and exit 1" {
-    skip
     output_folder=$(mktemp -d)
     echo "$output_folder"
-    run -1 whatisleft.sh pytest test/assets/pytest "$output_folder"
+    if whatisleft.sh pytest test/assets/pytest "$output_folder" ; then
+        fail "whatisleft should return 1"
+    else
+        assert_equal $? 1
+    fi
 
     run diff --exclude=__pycache__ --exclude=.pytest_cache -ru test/assets/pytest_whatisleft_output "$output_folder/project/"
 
@@ -192,7 +195,7 @@ setup() {
 }
 
 # bats test_tags=revert_remove_func
-@test "revert_remove() returns 0 and 'remove_line' on success" {
+@test "revert_remove() returns 0 and state_remove_line and increments current_line_number on success" {
     source whatisleft.sh
 
     local current_file
@@ -202,6 +205,7 @@ setup() {
     echo "test" > "$current_file"
     revert_remove
     assert_equal $state $state_remove_line
+    assert_equal 3 $current_line_number
     delta --paging never -s <(echo -e "test\ntest") "$current_file"
 }
 
