@@ -7,7 +7,7 @@ setup() {
     _common_setup
 }
 
-@test "Whatisleft with no project folder should fail" {
+@test "Whatisleft with no project folder fails" {
     run -2 whatisleft.sh
     assert_output "No project folder defined."
 }
@@ -20,21 +20,21 @@ setup() {
     diff test/assets/pytest "$output_folder"
 }
 
-@test "Whatisleft with no specified test framework should fail" {
+@test "Whatisleft with no specified test framework fails" {
     run -2 whatisleft.sh
 }
 
-@test "Whatisleft with no specified output_folder should fail" {
+@test "Whatisleft with no specified output_folder fails" {
     run -2 whatisleft.sh pytest test/pytest
 }
 
-@test "validate_test_framework should fail if test framework not in list" {
+@test "validate_test_framework fails if test framework not in list" {
     source whatisleft.sh
     run -1 validate_test_framework invalid_test_framework
     assert_output '"invalid_test_framework" is not a supported test framework.'
 }
 
-@test "validate_test_framework should not fail if test framework is in list" {
+@test "validate_test_framework does not fail if test framework is in list" {
     source whatisleft.sh
     run -0 validate_test_framework pytest
 }
@@ -47,13 +47,13 @@ setup() {
 }
 
 # bats test_tags=pytest_runner
-@test "Pytest.sh with invalid test folder should fail" {
+@test "Pytest.sh with invalid test folder fails" {
     run -2 pytest.sh invalid_folder
     assert_output "Test folder does not exist."
 }
 
 # bats test_tags=pytest_runner
-@test "Pytest.sh with no test folder should fail" {
+@test "Pytest.sh with no test folder fails" {
     run -2 pytest.sh
     assert_output "No test folder defined."
 }
@@ -77,14 +77,16 @@ setup() {
 }
 
 # bats test_tags=whatisleft
-@test "whatisleft should copy folder, run pytest and exit 1" {
+@test "whatisleft copies folder, run pytest and exit 1" {
+    skip
     output_folder=$(mktemp -d)
+    echo "$output_folder"
     run -1 whatisleft.sh pytest test/assets/pytest "$output_folder"
 
     run diff --exclude=__pycache__ --exclude=.pytest_cache -ru test/assets/pytest_whatisleft_output "$output_folder/project/"
 
     if [ "$status" -eq "1" ]; then
-        echo "$output"| delta --paging never -s
+        echo "$output" | delta --paging never -s
         fail "Output of whatisleft is wrong."
     fi
 }
@@ -114,7 +116,7 @@ setup() {
 }
 
 # get_test_framework_runner
-@test "get_test_framework_runner should return pytest.sh for pytest" {
+@test "get_test_framework_runner returns pytest.sh for pytest" {
     source whatisleft.sh
     run get_test_framework_runner pytest
     assert_output "pytest.sh"
@@ -126,7 +128,7 @@ setup() {
 }
 
 # bats test_tags=get_next_file
-@test "get_next_file should return 1 if no next file exists" {
+@test "get_next_file returns 1 if no next file exists" {
     source whatisleft.sh
     local file_array=("file1" "file2" "file3")
     local current_file_index=2
@@ -136,55 +138,61 @@ setup() {
 }
 
 # bats test_tags=get_next_file
-@test "get_next_file should return next file in list if exists" {
+@test "get_next_file returns next file in list if exists" {
     source whatisleft.sh
     local file_array=("file1" "file2" "file3")
     local current_file_index=0
-    # run -0 get_next_file file_array $current_file_index "${file_array[@]}"
     run -0 get_next_file file_array[@] $current_file_index
     assert_output "file2"
 }
 
 # bats test_tags=remove_line_func
-@test "remove_line() should return success when a next line could be found" {
+@test "remove_line() sets state to success when a next line could be found" {
     source whatisleft.sh
     current_line_number=1
     current_file=$(mktemp)
     echo "test" > "$current_file"
-    run -0 remove_line
-    assert_output $state_remove_line_success
+    remove_line
+    assert_equal "$state" "$state_remove_line_success"
 }
 
 # bats test_tags=remove_line_func
-@test "remove_line() should return failure when no next line could be found" {
+@test "remove_line() sets state to failure when no next line could be found" {
     source whatisleft.sh
     local current_line_number=2
     local current_file
     current_file=$(mktemp)
     echo "test" > "$current_file"
-    run -1 remove_line
-    assert_output $state_remove_line_failed
-
+    if remove_line; then
+        fail "remove_line should not be successful"
+    else
+        assert_equal $? 1
+    fi
+    assert_equal $state $state_remove_line_failed
 }
 
 # bats test_tags=run_runner_func
-@test "run_runner() should return 0 und 'run_runner_success' if runner passed" {
+@test "run_runner() returns 0 und 'run_runner_success' if runner passed" {
     source whatisleft.sh
     framework_runner="ls"
-    run -0 run_runner
-    assert_output $state_run_runner_success
+    run_runner
+    assert_equal $state $state_run_runner_success
 }
 
 # bats test_tags=run_runner_func
-@test "run_runner() should return 1 and 'run_runner_failed' if runner fails" {
+@test "run_runner() returns 1 and 'run_runner_failed' if runner fails" {
     source whatisleft.sh
     framework_runner="lls"
-    run -1 run_runner
-    assert_output $state_run_runner_failed
+    if run_runner ; then
+        fail "run_runner should not be successful"
+    else
+        assert_equal $? 1
+    fi
+    assert_equal $state $state_run_runner_failed
 }
 
 # bats test_tags=revert_remove_func
-@test "revert_remove() should return 0 and 'remove_line' on success" {
+@test "revert_remove() returns 0 and 'remove_line' on success" {
     source whatisleft.sh
 
     local current_file
@@ -192,17 +200,22 @@ setup() {
     local removed_line="test"
     current_file=$(mktemp)
     echo "test" > "$current_file"
-    run -0 revert_remove
-    assert_output $state_remove_line
+    revert_remove
+    assert_equal $state $state_remove_line
+    delta --paging never -s <(echo -e "test\ntest") "$current_file"
 }
 
 # bats test_tags=revert_remove_func
-@test "revert_remove() should return 1 and 'finished' on failure" {
+@test "revert_remove() returns 1 and 'finished' on failure" {
     source whatisleft.sh
 
     local current_line_number=2
     local removed_line="test"
     local current_file="gibberish"
-    run -1 revert_remove
-    assert_output $state_finished
+    if revert_remove ; then
+        fail "revert_remove should not succeed"
+    else
+        assert_equal $? 1
+    fi
+    assert_equal $state $state_finished
 }

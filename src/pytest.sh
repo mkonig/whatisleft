@@ -9,4 +9,4 @@ elif ! [ -d "$testfolder" ]; then
     exit 2
 fi
 
-pytest $testfolder
+pytest "$testfolder"

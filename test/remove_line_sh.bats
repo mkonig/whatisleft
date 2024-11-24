@@ -44,3 +44,11 @@ setup() {
     tmp_file=$(mktemp)
     run -2 remove_line.sh 20 test/assets/testfile.py "$tmp_file"
 }
+
+@test "Fail with 3 when not all parameters are given" {
+    run -3 remove_line.sh 20
+    run -3 remove_line.sh 20 "test"
+    run -3 remove_line.sh 20 ""
+    run -3 remove_line.sh 20 "test" ""
+    run -3 remove_line.sh
+}

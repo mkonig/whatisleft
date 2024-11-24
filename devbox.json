@@ -4,7 +4,8 @@
     "python311@latest",
     "python311Packages.pytest@latest",
     "bats@latest",
-    "commitizen@latest"
+    "commitizen@latest",
+    "gum@latest"
   ],
   "shell": {
     "init_hook": [

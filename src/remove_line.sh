@@ -4,6 +4,10 @@ line_number=$1
 input_file=$2
 output_file=$3
 
+if [[ -z $line_number || -z $input_file || -z $output_file ]]; then
+    exit 3
+fi
+
 number_of_lines=$(awk 'END{print NR}' "$input_file")
 
 if [[ $line_number -gt $number_of_lines ]]; then

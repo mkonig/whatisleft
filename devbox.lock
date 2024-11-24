@@ -113,9 +113,57 @@
         }
       }
     },
+    "gum@latest": {
+      "last_modified": "2024-09-10T15:01:03Z",
+      "resolved": "github:NixOS/nixpkgs/5ed627539ac84809c78b2dd6d26a5cebeb5ae269#gum",
+      "source": "devbox-search",
+      "version": "0.14.5",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/n1gqffrwdzr3vpsmwmwx3hmw814c1k6g-gum-0.14.5",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/n1gqffrwdzr3vpsmwmwx3hmw814c1k6g-gum-0.14.5"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ggp10jr3l6higs0gqibp6ypjlf7yakpc-gum-0.14.5",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ggp10jr3l6higs0gqibp6ypjlf7yakpc-gum-0.14.5"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/jq8shghha81s1wg67fcjrfnf4hbliimn-gum-0.14.5",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/jq8shghha81s1wg67fcjrfnf4hbliimn-gum-0.14.5"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/f199acwir08z47f3d5kf1fhmhajmd1ig-gum-0.14.5",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/f199acwir08z47f3d5kf1fhmhajmd1ig-gum-0.14.5"
+        }
+      }
+    },
     "python311@latest": {
       "last_modified": "2024-06-12T20:55:33Z",
-      "plugin_version": "0.0.3",
+      "plugin_version": "0.0.4",
       "resolved": "github:NixOS/nixpkgs/a9858885e197f984d92d7fe64e9fff6b2e488d40#python3",
       "source": "devbox-search",
       "version": "3.11.9",
