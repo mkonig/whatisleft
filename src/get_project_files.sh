@@ -1,35 +1,40 @@
 #!/usr/bin/env bash
 
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $(basename "$0") <project folder> <config> <output file>"
+    exit 1
+fi
+
 project_folder=$1
-output_file=$2
+project_config=$2
+output_file=$3
 
 error_msg=""
 
 create_output_file() {
-    exec 2>/dev/null
     local output_file="$1"
     mkdir -p "$(dirname "$output_file")"
     touch "$output_file"
 }
 
-if [[ -z "$project_folder" ]]; then
-    error_msg="No project folder defined."
-elif ! [[ -d "$project_folder" ]]; then
-    error_msg="Project folder does not exist."
+append_error_msg() {
+    if [[ ${error_msg} ]]; then
+        error_msg="${error_msg} $1"
+    else
+        error_msg=$1
+    fi
+}
+
+if ! [[ -d "$project_folder" ]]; then
+    append_error_msg "Project folder does not exist."
 fi
 
-if [[ -z "$output_file" ]]; then
-    if [[ -n "$error_msg" ]]; then
-        error_msg="${error_msg} No output folder defined."
-    else
-        error_msg="No output folder defined."
-    fi
-elif ! create_output_file "$output_file"; then
-    if [[ -n "$error_msg" ]]; then
-        error_msg="${error_msg} Output folder can not be created."
-    else
-        error_msg="Output folder can not be created."
-    fi
+if ! [[ -f "$project_config" ]]; then
+    append_error_msg "Project config does not exist."
+fi
+
+if ! create_output_file "$output_file"; then
+    append_error_msg "Output file can not be created."
 fi
 
 if [[ -n "$error_msg" ]]; then
@@ -37,4 +42,6 @@ if [[ -n "$error_msg" ]]; then
     exit 1
 fi
 
-fd -c never -t f -e 'py' -E 'test_*' --base-directory "$project_folder" > "${output_file}"
+pushd "$project_folder" > /dev/null || exit
+xargs -a "$project_config" -I {} sh -c "ls {}" > "$output_file"
+popd > /dev/null || exit

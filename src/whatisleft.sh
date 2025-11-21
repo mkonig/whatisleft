@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-source utils.sh
+root_dir="src"
+# shellcheck source=src/utils.sh
+source "src/utils.sh"
 
 test_framework=$1
 project_folder=$2
@@ -14,6 +16,7 @@ project_output_folder=""
 current_file_index=0
 state=""
 framework_runner=""
+number_of_changes=0
 
 validate_test_framework() {
     framework=$1
@@ -33,7 +36,7 @@ get_test_framework_runner() {
     framework=$1
 
     if [[ "$framework" == "pytest" ]]; then
-        echo "pytest.sh"
+        echo "${root_dir}/pytest.sh"
     else
         return 1
     fi
@@ -102,8 +105,8 @@ get_next_file() {
 
 remove_line() {
     log_debug "Removing line: $current_line_number, $current_file"
-    log_debug "$(cat $project_output_folder/$current_file)"
-    removed_line=$(remove_line.sh "$current_line_number" "${project_output_folder}/${current_file}" "${project_output_folder}/${current_file}")
+    log_debug "$(cat "$project_output_folder/$current_file")"
+    removed_line=$(${root_dir}/remove_line.sh "$current_line_number" "${project_output_folder}/${current_file}" "${project_output_folder}/${current_file}")
     remove_status=$?
     log_info "Removed from $current_file: $removed_line"
 
@@ -118,7 +121,7 @@ remove_line() {
             return 1
         fi
         current_line_number=1
-        removed_line=$(remove_line.sh "$current_line_number" "$project_output_folder/$current_file" "$project_output_folder/$current_file")
+        removed_line=$(${root_dir}/remove_line.sh "$current_line_number" "$project_output_folder/$current_file" "$project_output_folder/$current_file")
         remove_status=$?
         if [[ "$remove_status" -eq 1 ]]; then
             state="$state_remove_line_failed"
@@ -127,6 +130,7 @@ remove_line() {
     fi
 
     log_debug "Removed line successfully: $removed_line"
+    number_of_changes=$((number_of_changes+1))
     state="$state_remove_line_success"
     return 0
 }
@@ -146,7 +150,7 @@ run_runner() {
 
 revert_remove() {
     log_debug "revert: $current_line_number ,removed line: $removed_line ,current file: $current_file"
-    insert_line.sh $current_line_number "$removed_line" "${project_output_folder}/${current_file}" "${project_output_folder}/${current_file}" > /dev/null 2>&1
+    ${root_dir}/insert_line.sh $current_line_number "$removed_line" "${project_output_folder}/${current_file}" "${project_output_folder}/${current_file}" > /dev/null 2>&1
     local revert_state=$?
     log_debug "revert state: $revert_state"
     log_debug "$(cat "${project_output_folder}/${current_file}")"
@@ -154,6 +158,7 @@ revert_remove() {
         state="$state_finished"
         return 1
     else
+        number_of_changes=$((number_of_changes-1))
         current_line_number=$((current_line_number+1))
         state="$state_remove_line"
         return 0
@@ -171,7 +176,14 @@ run_state() {
     fi
 }
 
-run_main() {
+reset() {
+    first_run=false
+    number_of_changes=0
+    current_line_number=1
+    current_file=${project_files[0]}
+}
+
+main() {
     log_debug "Starting"
     check_parameters
     framework_runner=$(get_test_framework_runner "$test_framework")
@@ -180,26 +192,33 @@ run_main() {
     project_output_folder="${output_folder}/project"
 
     move_project_to_output_folder "$project_folder" "$project_output_folder"
-    get_project_files.sh "$project_output_folder" "${project_files_file}"
+    "${root_dir}/get_project_files.sh" "$project_output_folder" "${project_output_folder}/project.conf" "${project_files_file}"
     mapfile -t project_files < "${project_files_file}"
-    current_file=${project_files[0]}
-    log_debug "current_file: $current_file"
 
-    state="$state_remove_line"
-    log_debug "start state: $state"
-    while [ "$state" != "$state_finished" ] ; do
-        log_debug "state: $state"
-        run_state "$state"
-        log_debug "state after run: $state"
-        next_state "$state"
-        log_debug "next state: $state"
+    local first_run=true
+
+    while [ "$first_run" = true ] || [ "$number_of_changes" -gt 0 ] ; do
+        reset
+        log_debug "current_file: $current_file"
+
+        state="$state_remove_line"
+        log_debug "start state: $state"
+        while [ "$state" != "$state_finished" ] ; do
+            log_debug "state: $state"
+            run_state "$state"
+            log_debug "state after run: $state"
+            next_state "$state"
+            log_debug "next state: $state"
+        done
+
+        log_debug "number_of_changes: $number_of_changes"
     done
     echo "done"
 
-    exit 1
+    exit 0
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]
 then
-    run_main
+    main
 fi

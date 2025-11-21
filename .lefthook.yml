@@ -1,0 +1,7 @@
+pre-commit:
+  parallel: true
+  commands:
+    bats:
+      run: bats test
+    shellcheck:
+      run: shellcheck src/*
