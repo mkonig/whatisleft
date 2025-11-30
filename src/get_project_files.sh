@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# REFACTOR-2: Error Handling Consistency - Define standard error codes
+# readonly E_SUCCESS=0
+# readonly E_INVALID_ARGS=1
+# readonly E_DIR_NOT_FOUND=2
+# readonly E_FILE_NOT_FOUND=3
+
 if [ "$#" -ne 3 ]; then
     echo "Usage: $(basename "$0") <project folder> <config> <output file>"
     exit 1

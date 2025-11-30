@@ -1,10 +1,26 @@
 #!/usr/bin/env bats
 
+# REFACTOR-7: Testing Isolation - Tests source entire whatisleft.sh making them fragile
+# and creating implicit dependencies on global state. Consider:
+# 1. Extract testable functions to separate library files:
+#    src/lib/state_machine.sh
+#    src/lib/file_operations.sh
+#    src/lib/test_runner.sh
+# 2. Keep only orchestration logic in whatisleft.sh
+# 3. Source specific lib files in tests instead of the entire main script
+# 4. Use dependency injection for external dependencies (filesystem, test runner)
+# This would enable:
+#    - Unit testing individual functions in isolation
+#    - Mocking dependencies
+#    - Faster test execution
+#    - More maintainable tests
+
 bats_require_minimum_version 1.5.0
 
 setup() {
     load "test_helper/common-setup"
     _common_setup
+    cp -r test/resources/* "$BATS_TEST_TMPDIR/"
 }
 
 @test "Whatisleft with no project folder fails" {
@@ -65,14 +81,18 @@ setup() {
 
 # bats test_tags=remove_line,insert_line
 @test "Remove line and put it back" {
-    tmp_remove_output_file=$(mktemp)
-    tmp_insert_output_file=$(mktemp)
-    last_line_number=$(wc -l < "test/resources/testfile.py")
+    T=$BATS_TEST_TMPDIR
+    tmp_decoded_file=$(mktemp)
+    last_line_number=$(jq -n '[inputs.line_number] | max' "${T}/testfile.jsonl")
+    cp "${T}/testfile.jsonl" "${T}/testfile.jsonl.orig"
 
-    for current_line_number in 1 3 5 6 ${last_line_number}; do
-        removed_line=$(remove_line.sh "$current_line_number" test/resources/testfile.py "$tmp_remove_output_file")
-        run insert_line.sh "$current_line_number" "${removed_line}" "$tmp_remove_output_file" "$tmp_insert_output_file"
-        diff "$tmp_insert_output_file" test/resources/testfile.py
+    for line_number in 1 3 5 6 ${last_line_number}; do
+        cp "${T}/testfile.jsonl.orig" "${T}/testfile.jsonl"
+        remove_line.sh "$line_number" "${T}/testfile.jsonl" "$tmp_decoded_file"
+        run -1 diff "$tmp_decoded_file" "${T}/testfile.py"
+
+        run -0 insert_line.sh "$line_number" "${T}/testfile.jsonl" "$tmp_decoded_file"
+        run -0 diff "$tmp_decoded_file" "${T}/testfile.py"
     done
 }
 
@@ -148,9 +168,12 @@ setup() {
 # bats test_tags=remove_line_func
 @test "remove_line() sets state to success when a next line could be found" {
     source whatisleft.sh
-    current_line_number=1
+    line_number=1
     current_file=$(mktemp)
     echo "test" > "$current_file"
+    current_jsonl_file="${current_file}.jsonl"
+    run -0 jsonl_conv.sh encode "${current_file}" "${current_jsonl_file}"
+
     remove_line
     assert_equal "$state" "$state_remove_line_success"
 }
@@ -160,10 +183,14 @@ setup() {
     source whatisleft.sh
     local current_line_number=2
     local current_file
+    local current_jsonl_file
     current_file=$(mktemp)
     echo "test" > "$current_file"
+    current_jsonl_file="${current_file}.jsonl"
+    run -0 jsonl_conv.sh encode "${current_file}" "${current_jsonl_file}"
+
     if remove_line; then
-        fail "remove_line should not be successful"
+        fail "remove_line() should not be successful"
     else
         assert_equal $? 1
     fi
@@ -195,14 +222,20 @@ setup() {
     source whatisleft.sh
 
     local current_file
+    local current_jsonl_file
     local current_line_number=2
     local removed_line="test"
     current_file=$(mktemp)
-    echo "test" > "$current_file"
+    current_jsonl_file="${current_file}.jsonl"
+    printf '%s
+    ' \
+      '{"line":"test1","line_number":1,"state":"normal"}' \
+      '{"line":"test2","line_number":2,"state":"removed"}' > "$current_jsonl_file"
+
     revert_remove
     assert_equal $state $state_remove_line
     assert_equal 3 $current_line_number
-    delta --paging never -s <(echo -e "test\ntest") "$current_file"
+    delta --paging never -s <(echo -e "test1\ntest2") "$current_file"
 }
 
 # bats test_tags=revert_remove_func
@@ -212,6 +245,7 @@ setup() {
     local current_line_number=2
     local removed_line="test"
     local current_file="gibberish"
+
     if revert_remove ; then
         fail "revert_remove should not succeed"
     else

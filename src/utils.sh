@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
-# Utility functions
+
+# REFACTOR-9: Logging Calls - Consider lazy evaluation to avoid executing commands
+# when debug level is not enabled. The logging function could check log level
+# before evaluating the message parameter:
+# log_debug() {
+#     if [[ "${DEBUG_ENABLED:-0}" == "1" ]]; then
+#         logging "debug" "${1}"
+#     fi
+# }
+# Or move the check to the logging function itself to avoid evaluating
+# expensive command substitutions in the caller
 
 # shellcheck disable=SC2154
 logging() {
