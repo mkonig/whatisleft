@@ -27,6 +27,7 @@ setup() {
     tmp_file=$(mktemp)
     run remove_line.sh 1 "${BATS_TEST_TMPDIR}/testfile.jsonl" "$tmp_file"
     diff "$tmp_file" test/resources/remove_first_line_output.py
+    diff "${BATS_TEST_TMPDIR}/testfile.jsonl" test/resources/testfile_first_line_removed.jsonl
     assert_output "# python comment"
 }
 
@@ -34,6 +35,7 @@ setup() {
     tmp_file=$(mktemp)
     run remove_line.sh 3 "${BATS_TEST_TMPDIR}/testfile.jsonl" "$tmp_file"
     diff "$tmp_file" test/resources/remove_third_line_output.py
+    diff "${BATS_TEST_TMPDIR}/testfile.jsonl" test/resources/testfile_third_line_removed.jsonl
     assert_output "import something"
 }
 
@@ -45,6 +47,11 @@ setup() {
 @test "Fail with 2 when removing non existing line number > line numbers of the file" {
     tmp_file=$(mktemp)
     run -2 remove_line.sh 20 "${BATS_TEST_TMPDIR}/testfile.jsonl" "$tmp_file"
+}
+
+@test "Fail with 4 when removing an already removed line" {
+    tmp_file=$(mktemp)
+    run -4 remove_line.sh 3 "${BATS_TEST_TMPDIR}/testfile_third_line_removed.jsonl" "$tmp_file"
 }
 
 @test "Fail with 3 when not all parameters are given" {

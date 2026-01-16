@@ -4,6 +4,8 @@ root_dir="src"
 # shellcheck source=src/utils.sh
 source "src/utils.sh"
 
+log_level=$log_level_info
+
 test_framework=$1
 project_folder=$2
 output_folder=$3
@@ -35,6 +37,7 @@ current_file_index=0
 state=""
 framework_runner=""
 number_of_changes=0
+first_run=true
 
 # REFACTOR-8: Validation Logic - BUG: This function always exits on first iteration
 # The else clause fires immediately on first comparison, even if there are more items to check
@@ -170,53 +173,65 @@ get_next_file() {
 #     log_debug "$(cat "${project_output_folder}/${current_file}")"
 # fi
 remove_line() {
-    log_debug "Removing line: $current_line_number, $current_file"
+    log_info "Removing line: $current_line_number, $current_file"
     log_debug "$(cat "${project_output_folder}/${current_file}")"
 
     removed_line=$(${root_dir}/remove_line.sh "$current_line_number" "${project_output_folder}/${current_jsonl_file}" "${project_output_folder}/${current_file}")
     remove_status=$?
-    log_info "Removed from $current_file: $removed_line"
 
     if [[ "$remove_status" -eq 1 || "$remove_status" -eq 3 ]]; then
+        log_info "Removing failed $current_file: $removed_line"
         state="$state_remove_line_failed"
         return 1
     elif [[ "$remove_status" -eq 2 ]]; then
-        current_file=$(get_next_file project_files[@] $current_file_index)
-        get_next_file_status=$?
-        if [[ "$get_next_file_status" -eq 1 ]]; then
+        if ! current_file=$(get_next_file project_files[@] $current_file_index); then
             state="$state_remove_line_failed"
+            log_info "Removing failed $current_file: $removed_line"
             return 1
         fi
+        current_file_index=$((current_file_index + 1))
         current_line_number=1
+        current_jsonl_file="${current_file}.jsonl"
+        ${root_dir}/jsonl_conv.sh encode "${project_output_folder}/$current_file" "${project_output_folder}/$current_jsonl_file"
+
         removed_line=$(${root_dir}/remove_line.sh "$current_line_number" "${project_output_folder}/${current_jsonl_file}" "${project_output_folder}/${current_file}")
         remove_status=$?
+
         if [[ "$remove_status" -eq 1 ]]; then
             state="$state_remove_line_failed"
+            log_info "Removing failed $current_file: $removed_line"
             return 1
         fi
+    elif [[ "$remove_status" -eq 4 ]]; then
+        log_info "Removing already removed lines. Skipping."
+        state="$state_remove_line_success"
+        return 0
     fi
 
-    log_debug "Removed line successfully: $removed_line"
+    log_info "Removed line successfully: $removed_line"
     number_of_changes=$((number_of_changes+1))
     state="$state_remove_line_success"
     return 0
 }
 
 run_runner() {
-    log_debug "Framework: $framework_runner"
+    log_info "Running $framework_runner"
     eval "$framework_runner $project_output_folder" > /dev/null 2>&1
     runner_state=$?
     if [[ "$runner_state" -ge 1 ]]; then
         state="$state_run_runner_failed"
+        log_info "$framework_runner failed"
         return 1
     else
         state="$state_run_runner_success"
+        current_line_number=$((current_line_number+1))
+        log_info "$framework_runner success"
         return 0
     fi
 }
 
 revert_remove() {
-    log_debug "revert: $current_line_number ,removed line: $removed_line ,current file: $current_file"
+    log_info "revert: $current_line_number, removed line: $removed_line, current file: $current_file"
 
     ${root_dir}/insert_line.sh $current_line_number "${project_output_folder}/${current_jsonl_file}" "${project_output_folder}/${current_file}" > /dev/null 2>&1
     local revert_state=$?
@@ -248,6 +263,7 @@ reset() {
     first_run=false
     number_of_changes=0
     current_line_number=1
+    current_file_index=0
     current_file=${project_files[0]}
 }
 
@@ -266,9 +282,9 @@ main() {
     mapfile -t project_files < "${project_files_file}"
     current_file=${project_files[$current_file_index]}
     current_jsonl_file="${current_file}.jsonl"
-    "${root_dir}/jsonl_conv.sh" encode "$current_file" "$current_jsonl_file"
+    ${root_dir}/jsonl_conv.sh encode "${project_output_folder}/$current_file" "${project_output_folder}/$current_jsonl_file"
 
-    local first_run=true
+    first_run=true
 
     while [ "$first_run" = true ] || [ "$number_of_changes" -gt 0 ] ; do
         reset

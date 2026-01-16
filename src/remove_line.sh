@@ -25,11 +25,15 @@ elif [[ $line_number -lt 0 ]]; then
     exit 1
 fi
 
+line_state=$(jq -c -r --argjson ln "$line_number" 'select(.line_number == $ln).state' "$input_file")
+if [ "$line_state" = "removed" ] ; then
+    exit 4
+fi
+
 jq -c --argjson ln "$line_number" 'if .line_number == $ln then .state = "removed" else . end' "$input_file" | sponge "$input_file"
 removed_line=$(jq -r --argjson ln "$line_number" 'select(.line_number == $ln).line' "$input_file")
 tmp_file=$(mktemp)
 ${root_dir}/jsonl_conv.sh decode "$input_file" "$tmp_file"
-# sed "${line_number}d" "$input_file" > "$tmp_file"
 cp "$tmp_file" "$output_file"
 
 echo "$removed_line"
