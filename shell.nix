@@ -15,9 +15,5 @@ pkgs.mkShell {
     cocogitto
     jq
     jqp
-    fzf
-    entr
-    runme
-    openvscode-server
   ];
 }
