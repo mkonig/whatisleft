@@ -52,7 +52,7 @@ let
         lemminx = {
         settings = {
           xml={
-            catalogs={vim.uv.cwd() .. "/catalog.xml"},
+            catalogs={vim.uv.cwd() .. "/specs/catalog.xml"},
             validation = {noNetwork=true},
             },
             },

@@ -115,9 +115,7 @@ setup() {
 
 # bats test_tags=whatisleft
 @test "whatisleft copies folder, run pytest and exit 0" {
-    skip
     output_folder=$(mktemp -d)
-    echo "$output_folder"
     if whatisleft.sh pytest test/resources/pytest/project1 "$output_folder" ; then
         assert_equal $? 0
     else

@@ -272,8 +272,8 @@ main() {
     check_parameters
     framework_runner=$(get_test_framework_runner "$test_framework")
 
-    local project_files_file="${output_folder}/project.files"
     project_output_folder="${output_folder}/project"
+    local project_files_file="${project_output_folder}/project.files"
 
     move_project_to_output_folder "$project_folder" "$project_output_folder"
 
@@ -303,6 +303,7 @@ main() {
         log_debug "number_of_changes: $number_of_changes"
     done
     echo "done"
+    ${root_dir}/to_cobertura.sh "${project_files_file}" "${project_output_folder}/coverage.xml"
 
     exit 0
 }
