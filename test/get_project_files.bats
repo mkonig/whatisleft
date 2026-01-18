@@ -7,6 +7,28 @@ setup() {
     _common_setup
 }
 
+@test "get_project_files handles directly named files." {
+    output_file=$(mktemp)
+    project_folder=$(mktemp -d)
+    touch "${project_folder}/file1.py"
+    touch "${project_folder}/file2.py"
+
+cat > "${project_folder}/project.conf" << EOF
+file1.py
+file2.py
+EOF
+
+    run get_project_files.sh "$project_folder" "$project_folder/project.conf" "$output_file"
+    refute_output
+
+expected_output=$(cat << EOF
+file1.py
+file2.py
+EOF
+)
+    assert_files_equal "$output_file" <(echo "$expected_output")
+}
+
 @test "get_project_files uses gitignore like config file 2." {
     output_file=$(mktemp)
     project_folder=$(mktemp -d)

@@ -1,0 +1,5 @@
+{"line_number":1,"state":"normal","line":"def foo():"}
+{"line_number":2,"state":"removed","line":"    c = 15"}
+{"line_number":3,"state":"removed","line":"    d = 14"}
+{"line_number":4,"state":"removed","line":"    a = c + d"}
+{"line_number":5,"state":"normal","line":"    return 2"}

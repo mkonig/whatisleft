@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE coverage SYSTEM "https://raw.githubusercontent.com/cobertura/cobertura/refs/heads/master/cobertura/src/site/htdocs/xml/coverage-04.dtd">
+<coverage version="0.1.0" timestamp="" lines-valid="" lines-covered="2" line-rate="" branches-covered="0" branches-valid="0" branch-rate="0" complexity="0">
+  <sources/>
+  <packages>
+    <package name="." line-rate="0" branch-rate="0" complexity="0">
+      <classes>
+        <class name="module1.py" filename="module1.py" complexity="0" line-rate="0" branch-rate="0">
+          <methods/>
+          <lines>
+            <line number="1" hits="1"/>
+            <line number="2" hits="0"/>
+            <line number="3" hits="0"/>
+            <line number="4" hits="0"/>
+            <line number="5" hits="1"/>
+          </lines>
+        </class>
+        <class name="module2.py" filename="module2.py" complexity="0" line-rate="0" branch-rate="0">
+          <methods/>
+          <lines>
+            <line number="1" hits="1"/>
+            <line number="2" hits="0"/>
+            <line number="3" hits="0"/>
+            <line number="4" hits="0"/>
+            <line number="5" hits="1"/>
+          </lines>
+        </class>
+      </classes>
+    </package>
+  </packages>
+</coverage>

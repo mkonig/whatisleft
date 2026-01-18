@@ -39,18 +39,6 @@ framework_runner=""
 number_of_changes=0
 first_run=true
 
-# REFACTOR-8: Validation Logic - BUG: This function always exits on first iteration
-# The else clause fires immediately on first comparison, even if there are more items to check
-# Fix:
-# validate_test_framework() {
-#     local framework=$1
-#     local valid_frameworks=("pytest")
-#     for valid in "${valid_frameworks[@]}"; do
-#         [[ "$framework" == "$valid" ]] && return 0
-#     done
-#     echo "\"${framework}\" is not a supported test framework."
-#     return 1
-# }
 validate_test_framework() {
     local framework=$1
     local valid_frameworks=("pytest")
@@ -58,11 +46,10 @@ validate_test_framework() {
     for valid_framework in "${valid_frameworks[@]}"; do
         if [[ "$framework" = "$valid_framework" ]]; then
             exit 0
-        else
-            echo "\"${framework}\" is not a supported test framework."
-            exit 1
         fi
     done
+    echo "\"${framework}\" is not a supported test framework."
+    exit 1
 }
 
 # REFACTOR-10: Configuration - Hardcoded paths make adding new frameworks difficult
@@ -145,6 +132,30 @@ get_next_file() {
     echo "${files[$next_index]}"
 }
 
+function move_on_to_next_file() {
+    if ! current_file=$(get_next_file project_files[@] $current_file_index); then
+        state="$state_remove_line_failed"
+        log_info "No next file available"
+        return 1
+    else
+        log_info "Moved on to next file $current_file"
+    fi
+    current_file_index=$((current_file_index + 1))
+    current_line_number=1
+    current_jsonl_file="${current_file}.jsonl"
+
+    removed_line=$(${root_dir}/remove_line.sh "$current_line_number" "${project_output_folder}/${current_jsonl_file}" "${project_output_folder}/${current_file}")
+    remove_status=$?
+
+    if [[ "$remove_status" -eq "$error_line_nr_negative" ]]; then
+        state="$state_remove_line_failed"
+        log_info "Removing failed $current_file: $removed_line"
+        return 1
+    fi
+
+    return 0
+}
+
 # REFACTOR-3: Function Responsibilities - This function does too much:
 # - Removes line
 # - Handles file switching logic
@@ -167,42 +178,32 @@ get_next_file() {
 # readonly REMOVE_LINE_ERROR=3
 # Then use: if [[ "$remove_status" -eq "$REMOVE_LINE_INVALID" || ... ]]
 #
-# REFACTOR-9: Logging Calls - Command substitution in log_debug executes even when not needed
-# Wrap expensive debug calls:
-# if [[ "${DEBUG:-0}" == "1" ]]; then
-#     log_debug "$(cat "${project_output_folder}/${current_file}")"
-# fi
 remove_line() {
     log_info "Removing line: $current_line_number, $current_file"
     log_debug "$(cat "${project_output_folder}/${current_file}")"
 
+    local error_line_nr_negative=1
+    local error_line_nr_gt_max=2
+    local error_line_already_removed=4
+    local error_wrong_parameters=3
+
     removed_line=$(${root_dir}/remove_line.sh "$current_line_number" "${project_output_folder}/${current_jsonl_file}" "${project_output_folder}/${current_file}")
     remove_status=$?
 
-    if [[ "$remove_status" -eq 1 || "$remove_status" -eq 3 ]]; then
+    log_debug "$(cat "${project_output_folder}/${current_file}")"
+
+    if [[ "$remove_status" -eq "$error_line_nr_negative" || "$remove_status" -eq "$error_wrong_parameters" ]]; then
         log_info "Removing failed $current_file: $removed_line"
         state="$state_remove_line_failed"
         return 1
-    elif [[ "$remove_status" -eq 2 ]]; then
-        if ! current_file=$(get_next_file project_files[@] $current_file_index); then
-            state="$state_remove_line_failed"
-            log_info "Removing failed $current_file: $removed_line"
+    elif [[ "$remove_status" -eq "$error_line_nr_gt_max" ]]; then
+        move_on_to_next_file
+        move_on_status=$?
+        if [[ "$move_on_status" -ne 0 ]]; then
+            log_info "Moving to next file failed."
             return 1
         fi
-        current_file_index=$((current_file_index + 1))
-        current_line_number=1
-        current_jsonl_file="${current_file}.jsonl"
-        ${root_dir}/jsonl_conv.sh encode "${project_output_folder}/$current_file" "${project_output_folder}/$current_jsonl_file"
-
-        removed_line=$(${root_dir}/remove_line.sh "$current_line_number" "${project_output_folder}/${current_jsonl_file}" "${project_output_folder}/${current_file}")
-        remove_status=$?
-
-        if [[ "$remove_status" -eq 1 ]]; then
-            state="$state_remove_line_failed"
-            log_info "Removing failed $current_file: $removed_line"
-            return 1
-        fi
-    elif [[ "$remove_status" -eq 4 ]]; then
+    elif [[ "$remove_status" -eq "$error_line_already_removed" ]]; then
         log_info "Removing already removed lines. Skipping."
         state="$state_remove_line_success"
         return 0
@@ -231,7 +232,7 @@ run_runner() {
 }
 
 revert_remove() {
-    log_info "revert: $current_line_number, removed line: $removed_line, current file: $current_file"
+    log_info "revert: $current_line_number, removed line: $removed_line, current file: $current_file, $current_jsonl_file"
 
     ${root_dir}/insert_line.sh $current_line_number "${project_output_folder}/${current_jsonl_file}" "${project_output_folder}/${current_file}" > /dev/null 2>&1
     local revert_state=$?
@@ -265,6 +266,7 @@ reset() {
     current_line_number=1
     current_file_index=0
     current_file=${project_files[0]}
+    current_jsonl_file="${current_file}.jsonl"
 }
 
 main() {
@@ -280,9 +282,12 @@ main() {
     "${root_dir}/get_project_files.sh" "$project_output_folder" "${project_output_folder}/project.conf" "${project_files_file}"
 
     mapfile -t project_files < "${project_files_file}"
+    for file in "${project_files[@]}" ; do
+        ${root_dir}/jsonl_conv.sh encode "${project_output_folder}/$file" "${project_output_folder}/${file}.jsonl"
+    done
+
     current_file=${project_files[$current_file_index]}
     current_jsonl_file="${current_file}.jsonl"
-    ${root_dir}/jsonl_conv.sh encode "${project_output_folder}/$current_file" "${project_output_folder}/$current_jsonl_file"
 
     first_run=true
 

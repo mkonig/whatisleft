@@ -96,7 +96,7 @@ setup() {
     done
 }
 
-# bats test_tags=whatisleft
+# bats test_tags=whatisleft,e2e
 @test "whatisleft runs until it does not do any more changes to the code" {
     output_folder=$(mktemp -d)
     if whatisleft.sh pytest test/resources/pytest/project2 "$output_folder" ; then
@@ -106,6 +106,24 @@ setup() {
     fi
 
     run diff --exclude=__pycache__ --exclude=.pytest_cache -ru test/resources/pytest/project2_output "$output_folder/project/"
+
+    if [ "$status" -eq "1" ]; then
+        echo "$output" | delta --paging never -s
+        fail "Output of whatisleft is wrong."
+    fi
+}
+
+# bats test_tags=whatisleft,e2e
+@test "whatisleft with project with multiple files." {
+    output_folder=$(mktemp -d)
+    echo $output_folder
+    if whatisleft.sh pytest test/resources/pytest/project3 "$output_folder" ; then
+        assert_equal $? 0
+    else
+        fail "whatisleft should return 0. It returned $?"
+    fi
+
+    run diff --exclude=__pycache__ --exclude=.pytest_cache -ru test/resources/pytest/project3_output "$output_folder/project/"
 
     if [ "$status" -eq "1" ]; then
         echo "$output" | delta --paging never -s
