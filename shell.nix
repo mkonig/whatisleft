@@ -8,7 +8,7 @@ let
 
   createNvimLua = true;
 
-  extraPackages = [ pkgs.just ];
+  extraPackages = [ pkgs.just pkgs.bats ];
 
   extraNvimConfig = ''
   '';
