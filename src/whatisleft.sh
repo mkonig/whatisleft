@@ -302,8 +302,10 @@ main() {
 
         log_debug "number_of_changes: $number_of_changes"
     done
-    echo "done"
+
+    log_info "Creating coverage.xml"
     ${root_dir}/to_cobertura.sh "${project_files_file}" "${project_output_folder}/coverage.xml"
+    echo "done"
 
     exit 0
 }
