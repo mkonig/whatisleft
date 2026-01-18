@@ -4,11 +4,11 @@ let
   # =============================================================================
   # Configuration - modify these to enable/disable features
   # =============================================================================
-  enabled = [ bash ];
+  enabled = [ bash xml ];
 
   createNvimLua = true;
 
-  extraPackages = [ ];
+  extraPackages = [ pkgs.just ];
 
   extraNvimConfig = ''
   '';
@@ -18,51 +18,58 @@ let
 
   # ==== LANGUAGES ====
   bash = {
-    packages = [
-      pkgs.lefthook
-      pkgs.shellcheck
-      pkgs.shfmt
-      pkgs.markdownlint-cli
-      pkgs.commitlint
-      pkgs.cocogitto
-      pkgs.nodePackages.cspell
-      pkgs.nodePackages.bash-language-server
-      pkgs.codespell
-      pkgs.python313Packages.pycobertura
-      pkgs.bats
-      pkgs.bat
-      pkgs.shellcheck
-      pkgs.markdownlint-cli
-      pkgs.git-chglog
-      pkgs.jq
-      pkgs.jqp
-      pkgs.xmlstarlet
-    ];
-    linters = ''
-      sh = { "shellcheck", "cspell", "codespell" },
-      bash = { "shellcheck", "cspell", "codespell" },
-    '';
-    formatters = ''
-      sh = { "shfmt" },
-      bash = { "shfmt" },
-      xml = { "xmlstarlet" },
-    '';
-    lsp = ''
-      local servers = {
-        lemminx = {
-        settings = {
-          xml={
-            catalogs={vim.uv.cwd() .. "/specs/catalog.xml"},
-            validation = {noNetwork=true},
-            },
-            },
+  packages = [
+    pkgs.lefthook
+    pkgs.shellcheck
+    pkgs.shfmt
+    pkgs.markdownlint-cli
+    pkgs.commitlint
+    pkgs.cocogitto
+    pkgs.nodePackages.cspell
+    pkgs.nodePackages.bash-language-server
+    pkgs.codespell
+  ];
+  linters = ''
+    sh = { "shellcheck", "cspell", "codespell" },
+    bash = { "shellcheck", "cspell", "codespell" },
+  '';
+  formatters = ''
+    sh = { "shfmt" },
+    bash = { "shfmt" },
+  '';
+  lsp = ''
+    bashls_config = {}
+    bashls_config.capabilities = require("blink.cmp").get_lsp_capabilities(bashls_config.capabilities)
+    vim.lsp.config('bashls', bashls_config)
+    vim.lsp.enable('bashls')
+  '';
+  formatterSetup = "";
+  hook = "";
+}
+;
+
+  xml = {
+  packages = [ pkgs.xmlstarlet ];
+  linters = "";
+  formatters = ''
+    xml = { "xmlstarlet" },
+  '';
+  lsp = ''
+    lemminx_config = {
+      settings = {
+      xml={
+        catalogs={vim.uv.cwd() .. "/specs/catalog.xml"},
+        validation = {noNetwork=true},
         },
-        bashls = {},
+        },
       }
-    '';
-    formatterSetup = "";
-    hook = "";
-  };
+      vim.lsp.config('lemminx', lemminx_config)
+      vim.lsp.enable('lemminx')
+  '';
+  formatterSetup = "";
+  hook = "";
+}
+;
   # ==== END LANGUAGES ====
 
   packages = lib.flatten (map (x: x.packages) enabled) ++ extraPackages;
@@ -76,11 +83,6 @@ let
     vim.o.exrc = false
 
     ${lspConfigs}
-    for server, config in pairs(servers) do
-      config.capabilities = require("blink.cmp").get_lsp_capabilities(config.capabilities)
-      vim.lsp.config(server, config)
-      vim.lsp.enable(server)
-    end
     local lint = require("lint")
     lint.linters_by_ft = {
     ${linters}}
