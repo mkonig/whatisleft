@@ -197,12 +197,8 @@ remove_line() {
         state="$state_remove_line_failed"
         return 1
     elif [[ "$remove_status" -eq "$error_line_nr_gt_max" ]]; then
-        move_on_to_next_file
-        move_on_status=$?
-        if [[ "$move_on_status" -ne 0 ]]; then
-            log_info "Moving to next file failed."
-            return 1
-        fi
+        state="$state_remove_line_failed"
+        return 1
     elif [[ "$remove_status" -eq "$error_line_already_removed" ]]; then
         log_info "Removing already removed lines. Skipping."
         state="$state_remove_line_success"
@@ -225,7 +221,6 @@ run_runner() {
         return 1
     else
         state="$state_run_runner_success"
-        current_line_number=$((current_line_number+1))
         log_info "$framework_runner success"
         return 0
     fi
@@ -243,7 +238,6 @@ revert_remove() {
         return 1
     else
         number_of_changes=$((number_of_changes-1))
-        current_line_number=$((current_line_number+1))
         state="$state_remove_line"
         return 0
     fi
@@ -263,7 +257,6 @@ run_state() {
 reset() {
     first_run=false
     number_of_changes=0
-    current_line_number=1
     current_file_index=0
     current_file=${project_files[0]}
     current_jsonl_file="${current_file}.jsonl"
@@ -295,14 +288,21 @@ main() {
         reset
         log_debug "current_file: $current_file"
 
-        state="$state_remove_line"
-        log_debug "start state: $state"
-        while [ "$state" != "$state_finished" ] ; do
-            log_debug "state: $state"
-            run_state "$state"
-            log_debug "state after run: $state"
-            next_state "$state"
-            log_debug "next state: $state"
+        for file in "${project_files[@]}" ; do
+            current_file=${file}
+            current_jsonl_file="${current_file}.jsonl"
+            local number_of_lines
+            number_of_lines=$(jq -n '[inputs.line_number] | max' "${project_output_folder}/$current_jsonl_file")
+            local line_nr=1
+            while [ "$line_nr" -le "$number_of_lines" ]; do
+                current_line_number=$line_nr
+                remove_line
+                if ! run_runner ; then
+                    log_debug "Line to revert: $removed_line"
+                    revert_remove
+                fi
+                line_nr=$((line_nr + 1))
+            done
         done
 
         log_debug "number_of_changes: $number_of_changes"

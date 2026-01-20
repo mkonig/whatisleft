@@ -86,7 +86,7 @@ setup() {
     last_line_number=$(jq -n '[inputs.line_number] | max' "${T}/testfile.jsonl")
     cp "${T}/testfile.jsonl" "${T}/testfile.jsonl.orig"
 
-    for line_number in 1 3 5 6 ${last_line_number}; do
+    for line_number in 1 3 4 7 ${last_line_number}; do
         cp "${T}/testfile.jsonl.orig" "${T}/testfile.jsonl"
         remove_line.sh "$line_number" "${T}/testfile.jsonl" "$tmp_decoded_file"
         run -1 diff "$tmp_decoded_file" "${T}/testfile.py"
@@ -233,7 +233,7 @@ setup() {
 }
 
 # bats test_tags=revert_remove_func
-@test "revert_remove() returns 0 and state_remove_line and increments current_line_number on success" {
+@test "revert_remove() returns 0 and state_remove_line" {
     source whatisleft.sh
 
     local current_file
@@ -249,7 +249,6 @@ setup() {
 
     revert_remove
     assert_equal $state $state_remove_line
-    assert_equal 3 $current_line_number
     delta --paging never -s <(echo -e "test1\ntest2") "$current_file"
 }
 
