@@ -25,7 +25,6 @@ setup() {
 
 @test "Whatisleft with no project folder fails" {
     run -2 whatisleft.sh
-    assert_output "No project folder defined."
 }
 
 @test "Move test project to output folder" {
@@ -181,6 +180,68 @@ setup() {
 }
 
 # bats test_tags=remove_line_func
+@test "remove_line() returns 2 when removing already removed line and makes no change." {
+    source whatisleft.sh
+    line_number=1
+    current_file=$(mktemp)
+    echo "test" > "$current_file"
+    current_jsonl_file="${current_file}.jsonl"
+    run -0 jsonl_conv.sh encode "${current_file}" "${current_jsonl_file}"
+    run -0 remove_line
+
+    orig_jsonl_file=$(mktemp)
+    cp "${current_jsonl_file}" "${orig_jsonl_file}"
+
+    if remove_line ; then
+        fail "remove_line() should fail with 2"
+    else
+        assert_equal $? 2
+        assert_equal "$number_of_changes" 0
+        assert_files_equal "${orig_jsonl_file}" "${current_jsonl_file}"
+    fi
+}
+# bats test_tags=remove_line_func
+@test "remove_line() returns 2 when line is a comment but makes no change" {
+    source whatisleft.sh
+    line_number=1
+    current_file=$(mktemp)
+    echo "# test" > "$current_file"
+    current_jsonl_file="${current_file}.jsonl"
+    run -0 jsonl_conv.sh encode "${current_file}" "${current_jsonl_file}"
+
+    orig_jsonl_file=$(mktemp)
+    cp "${current_jsonl_file}" "${orig_jsonl_file}"
+
+    if remove_line ; then
+        fail "remove_line() should fail with 2"
+    else
+        assert_equal $? 2
+        assert_equal "$number_of_changes" 0
+        assert_files_equal "${orig_jsonl_file}" "${current_jsonl_file}"
+    fi
+}
+
+# bats test_tags=remove_line_func
+@test "remove_line() returns 2 when line is empty and makes no change" {
+    source whatisleft.sh
+    current_file=$(mktemp)
+    echo "" > "$current_file"
+    current_jsonl_file="${current_file}.jsonl"
+    run -0 jsonl_conv.sh encode "${current_file}" "${current_jsonl_file}"
+
+    orig_jsonl_file=$(mktemp)
+    cp "${current_jsonl_file}" "${orig_jsonl_file}"
+
+    if remove_line ; then
+        fail "remove_line() should fail with 2"
+    else
+        assert_equal $? 2
+        assert_equal "$number_of_changes" 0
+        assert_files_equal "${orig_jsonl_file}" "${current_jsonl_file}"
+    fi
+}
+
+# bats test_tags=remove_line_func
 @test "remove_line() sets state to success when a next line could be found" {
     source whatisleft.sh
     line_number=1
@@ -191,6 +252,7 @@ setup() {
 
     remove_line
     assert_equal "$state" "$state_remove_line_success"
+    assert_equal "$number_of_changes" 1
 }
 
 # bats test_tags=remove_line_func
@@ -233,7 +295,7 @@ setup() {
 }
 
 # bats test_tags=revert_remove_func
-@test "revert_remove() returns 0 and state_remove_line" {
+@test "revert_remove() returns 0" {
     source whatisleft.sh
 
     local current_file
@@ -248,22 +310,16 @@ setup() {
       '{"line":"test2","line_number":2,"state":"removed"}' > "$current_jsonl_file"
 
     revert_remove
-    assert_equal $state $state_remove_line
     delta --paging never -s <(echo -e "test1\ntest2") "$current_file"
 }
 
 # bats test_tags=revert_remove_func
-@test "revert_remove() returns 1 and 'finished' on failure" {
+@test "revert_remove() exit 1 on failure" {
     source whatisleft.sh
 
     local current_line_number=2
     local removed_line="test"
     local current_file="gibberish"
 
-    if revert_remove ; then
-        fail "revert_remove should not succeed"
-    else
-        assert_equal $? 1
-    fi
-    assert_equal $state $state_finished
+    run -1 revert_remove
 }

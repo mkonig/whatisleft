@@ -37,7 +37,7 @@ logging() {
         "$log_level_error")
             level_text="error";;
     esac
-    gum log -o whatisleft.log -t rfc822 -l "${level_text}" "${message}"
+    gum log -s -o whatisleft.log -t rfc822 -l "${level_text}" "${message}"
 }
 
 log_debug() {
