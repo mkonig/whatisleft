@@ -130,7 +130,7 @@ setup() {
     fi
 }
 
-# bats test_tags=whatisleft
+# bats test_tags=whatisleft,e2e
 @test "whatisleft copies folder, run pytest and exit 0" {
     output_folder=$(mktemp -d)
     if whatisleft.sh pytest test/resources/pytest/project1 "$output_folder" ; then
@@ -180,71 +180,61 @@ setup() {
 }
 
 # bats test_tags=remove_line_func
-@test "remove_line() returns 2 when removing already removed line and makes no change." {
+@test "remove_line() removes the next removable line if line was already removed." {
     source whatisleft.sh
-    line_number=1
-    current_file=$(mktemp)
-    echo "test" > "$current_file"
-    current_jsonl_file="${current_file}.jsonl"
-    run -0 jsonl_conv.sh encode "${current_file}" "${current_jsonl_file}"
-    run -0 remove_line
-
-    orig_jsonl_file=$(mktemp)
-    cp "${current_jsonl_file}" "${orig_jsonl_file}"
+    current_line_number=3
+    number_of_lines=8
+    current_jsonl_file="${BATS_TEST_TMPDIR}/testfile_third_line_removed.jsonl"
 
     if remove_line ; then
-        fail "remove_line() should fail with 2"
+        assert_equal $? 0
+        assert_equal "$number_of_changes" 1
+        assert_equal "$current_line_number" 4
+        assert_files_equal "${BATS_TEST_TMPDIR}/testfile_third_and_fourth_line_removed.jsonl"  "${current_jsonl_file}"
     else
-        assert_equal $? 2
-        assert_equal "$number_of_changes" 0
-        assert_files_equal "${orig_jsonl_file}" "${current_jsonl_file}"
-    fi
-}
-# bats test_tags=remove_line_func
-@test "remove_line() returns 2 when line is a comment but makes no change" {
-    source whatisleft.sh
-    line_number=1
-    current_file=$(mktemp)
-    echo "# test" > "$current_file"
-    current_jsonl_file="${current_file}.jsonl"
-    run -0 jsonl_conv.sh encode "${current_file}" "${current_jsonl_file}"
-
-    orig_jsonl_file=$(mktemp)
-    cp "${current_jsonl_file}" "${orig_jsonl_file}"
-
-    if remove_line ; then
-        fail "remove_line() should fail with 2"
-    else
-        assert_equal $? 2
-        assert_equal "$number_of_changes" 0
-        assert_files_equal "${orig_jsonl_file}" "${current_jsonl_file}"
+        fail "remove_line() should not fail"
     fi
 }
 
 # bats test_tags=remove_line_func
-@test "remove_line() returns 2 when line is empty and makes no change" {
+@test "remove_line() removes the next removable line if line is a comment." {
     source whatisleft.sh
-    current_file=$(mktemp)
-    echo "" > "$current_file"
-    current_jsonl_file="${current_file}.jsonl"
-    run -0 jsonl_conv.sh encode "${current_file}" "${current_jsonl_file}"
-
-    orig_jsonl_file=$(mktemp)
-    cp "${current_jsonl_file}" "${orig_jsonl_file}"
+    current_line_number=6
+    number_of_lines=8
+    current_jsonl_file="${BATS_TEST_TMPDIR}/testfile.jsonl"
 
     if remove_line ; then
-        fail "remove_line() should fail with 2"
+        assert_equal $? 0
+        assert_equal "$number_of_changes" 1
+        assert_equal "$current_line_number" 7
+        assert_files_equal "${BATS_TEST_TMPDIR}/testfile_seventh_line_removed.jsonl"  "${current_jsonl_file}"
     else
-        assert_equal $? 2
-        assert_equal "$number_of_changes" 0
-        assert_files_equal "${orig_jsonl_file}" "${current_jsonl_file}"
+        fail "remove_line() should not fail"
+    fi
+}
+
+# bats test_tags=remove_line_func
+@test "remove_line() removes the next removable line if line is empty" {
+    source whatisleft.sh
+    current_line_number=2
+    number_of_lines=8
+    current_jsonl_file="${BATS_TEST_TMPDIR}/testfile.jsonl"
+
+    if remove_line ; then
+        assert_equal $? 0
+        assert_equal "$number_of_changes" 1
+        assert_equal "$current_line_number" 3
+        assert_files_equal "${BATS_TEST_TMPDIR}/testfile_third_line_removed.jsonl"  "${current_jsonl_file}"
+    else
+        fail "remove_line() should not fail"
     fi
 }
 
 # bats test_tags=remove_line_func
 @test "remove_line() sets state to success when a next line could be found" {
     source whatisleft.sh
-    line_number=1
+    current_line_number=1
+    number_of_lines=1
     current_file=$(mktemp)
     echo "test" > "$current_file"
     current_jsonl_file="${current_file}.jsonl"

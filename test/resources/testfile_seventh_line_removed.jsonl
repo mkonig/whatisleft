@@ -1,8 +1,8 @@
-{"line_number":1,"state":"removed","line":"import something"}
+{"line_number":1,"state":"normal","line":"import something"}
 {"line_number":2,"state":"ignore","line":""}
 {"line_number":3,"state":"normal","line":"def a_func():"}
 {"line_number":4,"state":"normal","line":"    print(\"hi\")"}
 {"line_number":5,"state":"ignore","line":""}
 {"line_number":6,"state":"ignore","line":"# a function"}
-{"line_number":7,"state":"normal","line":"def b():"}
+{"line_number":7,"state":"removed","line":"def b():"}
 {"line_number":8,"state":"normal","line":"    pass"}

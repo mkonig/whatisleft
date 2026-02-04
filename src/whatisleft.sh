@@ -20,7 +20,6 @@ current_jsonl_file=""
 removed_line=""
 project_files=()
 project_output_folder=""
-current_file_index=0
 framework_runner=""
 number_of_changes=0
 first_run=true
@@ -101,29 +100,7 @@ get_next_file() {
     echo "${files[$next_index]}"
 }
 
-move_on_to_next_file() {
-    if ! current_file=$(get_next_file project_files[@] $current_file_index); then
-        log_info "No next file available"
-        return 1
-    else
-        log_info "Moved on to next file $current_file"
-    fi
-    current_file_index=$((current_file_index + 1))
-    current_line_number=1
-    current_jsonl_file="${current_file}.jsonl"
-
-    removed_line=$(${root_dir}/remove_line.sh "$current_line_number" "${project_output_folder}/${current_jsonl_file}" "${project_output_folder}/${current_file}")
-    remove_status=$?
-
-    if [[ "$remove_status" -eq "$error_line_nr_negative" ]]; then
-        log_info "Removing failed $current_file: $removed_line"
-        return 1
-    fi
-
-    return 0
-}
-
-remove_line_error_output() {
+log_remove_line_error() {
     local remove_status="$1"
     declare -A errors
     errors[$error_line_nr_negative]="Removing failed. Line number negative."
@@ -138,20 +115,18 @@ remove_line_error_output() {
 remove_line() {
     log_info "Removing line: $current_line_number, $current_file, $current_jsonl_file"
 
-    removed_line=$(${root_dir}/remove_line.sh "$current_line_number" "${project_output_folder}/${current_jsonl_file}" "${project_output_folder}/${current_file}")
+    removed_line_number=$(${root_dir}/remove_line.sh "$current_line_number" "${project_output_folder}/${current_jsonl_file}" "${project_output_folder}/${current_file}")
     remove_status=$?
 
-    remove_line_error_output $remove_status
+    log_remove_line_error $remove_status
     case "$remove_status" in
     "$error_line_nr_negative" | "$error_wrong_parameters" | "$error_line_nr_gt_max")
         return 1
         ;;
-    "$error_line_is_empty" | "$error_line_is_comment" | "$error_line_already_removed")
-        return 2
-        ;;
     esac
 
     log_info "Removed line successfully: $removed_line"
+    current_line_number=$removed_line_number
     number_of_changes=$((number_of_changes + 1))
     return 0
 }
@@ -186,7 +161,6 @@ revert_remove() {
 reset() {
     first_run=false
     number_of_changes=0
-    current_file_index=0
     current_file=${project_files[0]}
     current_jsonl_file="${current_file}.jsonl"
 }

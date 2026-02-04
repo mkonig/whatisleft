@@ -73,7 +73,7 @@ EOF
     printf "line1\n\nline3\n" > "$T/input.txt"
     cat > "$T/expected.jsonl" << 'EOF'
 {"line":"line1","line_number":1,"state":"normal"}
-{"line":"","line_number":2,"state":"normal"}
+{"line":"","line_number":2,"state":"ignore"}
 {"line":"line3","line_number":3,"state":"normal"}
 EOF
     run -0 jsonl_conv.sh encode "$T/input.txt" "$T/output.jsonl"
@@ -90,12 +90,6 @@ EOF
     echo 'path\to\file' > "$T/input.txt"
     run -0 jsonl_conv.sh encode "$T/input.txt" "$T/output.jsonl"
     assert_json_equal "$(cat "$T/output.jsonl")" '{"line":"path\\to\\file","line_number":1,"state":"normal"}'
-}
-
-@test "Supports deleted state parameter" {
-    echo "removed line" > "$T/input.txt"
-    run -0 jsonl_conv.sh encode "$T/input.txt" "$T/output.jsonl" "deleted"
-    assert_json_equal "$(cat "$T/output.jsonl")" '{"line":"removed line","line_number":1,"state":"deleted"}'
 }
 
 @test "Defaults to normal state when no state parameter given" {
@@ -119,12 +113,6 @@ EOF
     run -2 jsonl_conv.sh encode "$T/nonexistent.txt" "$T/output.jsonl"
 }
 
-# bats test_tags=encode,error
-@test "encode: Fails with exit code 3 when state is invalid" {
-    echo "test" > "$T/input.txt"
-    run -3 jsonl_conv.sh encode "$T/input.txt" "$T/output.jsonl" "invalid_state"
-}
-
 @test "Handles empty input file" {
     touch "$T/input.txt"
     run -0 jsonl_conv.sh encode "$T/input.txt" "$T/output.jsonl"
@@ -142,10 +130,10 @@ EOF
 @test "Converts python file correctly" {
     printf '# python comment\n\nimport something\n\ndef a_func():\n    print("hi")\n' > "$T/testfile.py"
     cat > "$T/expected.jsonl" << 'EOF'
-{"line":"# python comment","line_number":1,"state":"normal"}
-{"line":"","line_number":2,"state":"normal"}
+{"line":"# python comment","line_number":1,"state":"ignore"}
+{"line":"","line_number":2,"state":"ignore"}
 {"line":"import something","line_number":3,"state":"normal"}
-{"line":"","line_number":4,"state":"normal"}
+{"line":"","line_number":4,"state":"ignore"}
 {"line":"def a_func():","line_number":5,"state":"normal"}
 {"line":"    print(\"hi\")","line_number":6,"state":"normal"}
 EOF
@@ -192,7 +180,7 @@ EOF
 @test "decode: Handles empty lines" {
     cat > "$T/input.jsonl" << 'EOF'
 {"line":"line1","line_number":1,"state":"normal"}
-{"line":"","line_number":2,"state":"normal"}
+{"line":"","line_number":2,"state":"ignore"}
 {"line":"line3","line_number":3,"state":"normal"}
 EOF
     run -0 jsonl_conv.sh decode "$T/input.jsonl" "$T/output.txt"
@@ -212,10 +200,10 @@ EOF
     assert_equal "$(cat "$T/output.txt")" 'path\to\file'
 }
 
-@test "Excludes all deleted lines" {
+@test "Excludes all removed lines" {
     cat > "$T/input.jsonl" << 'EOF'
-{"line":"del1","line_number":1,"state":"deleted"}
-{"line":"del2","line_number":2,"state":"deleted"}
+{"line":"del1","line_number":1,"state":"removed"}
+{"line":"del2","line_number":2,"state":"removed"}
 EOF
     run -0 jsonl_conv.sh decode "$T/input.jsonl" "$T/output.txt"
     assert_equal "$(cat "$T/output.txt")" ""
